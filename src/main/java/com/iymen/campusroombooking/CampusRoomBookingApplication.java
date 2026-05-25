@@ -1,4 +1,4 @@
-package com.iymen.campus_room_booking;
+package com.iymen.campusroombooking;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

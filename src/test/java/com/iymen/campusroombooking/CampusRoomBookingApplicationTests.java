@@ -1,4 +1,4 @@
-package com.iymen.campus_room_booking;
+package com.iymen.campusroombooking;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
