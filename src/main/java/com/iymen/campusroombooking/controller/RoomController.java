@@ -2,6 +2,7 @@ package com.iymen.campusroombooking.controller;
 
 import java.util.List;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,13 +23,13 @@ public class RoomController {
     }
 
     @GetMapping("/api/rooms/{id}")
-    public RoomResponse room(@PathVariable Long id) {
+    public ResponseEntity<RoomResponse> room(@PathVariable Long id) {
         for (RoomResponse room : rooms()) {
             if (room.id().equals(id)) {
-                return room;
+                return ResponseEntity.ok(room);
             }
         }
-        return null;
+        return ResponseEntity.notFound().build();
     }
 }
 
