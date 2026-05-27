@@ -1,6 +1,7 @@
 package com.iymen.campusroombooking.controller;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.iymen.campusroombooking.dto.RoomResponse;
 import com.iymen.campusroombooking.service.RoomService;
@@ -26,9 +27,9 @@ public class RoomController {
 
     @GetMapping("/api/rooms/{id}")
     public ResponseEntity<RoomResponse> room(@PathVariable Long id) {
-        RoomResponse room = roomService.findRoomById(id);
-        if (room != null) {
-            return ResponseEntity.ok(room);
+        Optional<RoomResponse> room = roomService.findRoomById(id);
+        if (room.isPresent()) {
+            return ResponseEntity.ok(room.get());
         } else {
             return ResponseEntity.notFound().build();
         }

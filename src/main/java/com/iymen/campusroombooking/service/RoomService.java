@@ -1,6 +1,7 @@
 package com.iymen.campusroombooking.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -17,12 +18,12 @@ public class RoomService {
         );
     }
     
-    public RoomResponse findRoomById(Long id) {
+    public Optional<RoomResponse> findRoomById(Long id) {
         for (RoomResponse room : findAllRooms()) {
             if (room.id().equals(id)) {
-                return room;
+                return Optional.of(room);
             }
         }
-        return null;
+        return Optional.empty();
     }
 }
