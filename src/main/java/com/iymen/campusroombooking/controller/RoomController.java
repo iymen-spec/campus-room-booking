@@ -22,9 +22,12 @@ public class RoomController {
     }
     
     @GetMapping("/api/rooms")
-    public List<RoomResponse> rooms(@RequestParam(required=false) String building,
+    public ResponseEntity<List<RoomResponse>> rooms(@RequestParam(required=false) String building,
                                     @RequestParam(required=false) Integer minCapacity) {
-        return roomService.findRooms(building, minCapacity);
+        if(minCapacity!=null && minCapacity<0){
+           return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(roomService.findRooms(building, minCapacity));
     }
 
     @GetMapping("/api/rooms/{id}")
