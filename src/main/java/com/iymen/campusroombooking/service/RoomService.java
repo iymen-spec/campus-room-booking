@@ -12,14 +12,18 @@ import com.iymen.campusroombooking.model.Room;
 @Service
 public class RoomService {
 
-    public List<RoomResponse> findAllRooms() {
+    public List<RoomResponse> findRooms(String building, Integer minCapacity) {
         List<RoomResponse> roomResponses = new ArrayList<>();
-
-        for (Room room : hardcodedRooms()) {
-            roomResponses.add(toRoomResponse(room));
-        }
-
-        return roomResponses;
+		
+        for(Room room: hardcodedRooms()){
+			boolean matchesBuilding = building==null||room.building().equalsIgnoreCase(building);
+			boolean matchesCapacity = minCapacity==null||room.capacity()>=minCapacity;
+			
+			if( matchesBuilding && matchesCapacity){
+				roomResponses.add(toRoomResponse(room));
+			}
+		}
+		return roomResponses;
     }
     
 	private List<Room> hardcodedRooms(){

@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 public class RoomController {
@@ -21,8 +22,9 @@ public class RoomController {
     }
     
     @GetMapping("/api/rooms")
-    public List<RoomResponse> rooms() {
-        return roomService.findAllRooms();
+    public List<RoomResponse> rooms(@RequestParam(required=false) String building,
+                                    @RequestParam(required=false) Integer minCapacity) {
+        return roomService.findRooms(building, minCapacity);
     }
 
     @GetMapping("/api/rooms/{id}")
@@ -36,4 +38,3 @@ public class RoomController {
     }
 }
 
-    
