@@ -58,15 +58,8 @@ public class BookingService {
             return new BookingCreationResult(BookingCreationStatus.ROOM_NOT_FOUND, null);
         }
 
-        for (Booking booking : bookings) {
-            boolean sameRoom = booking.roomId().equals(request.roomId());
-            boolean sameDate = booking.date().equals(request.date());
-            boolean overlaps = request.startTime().compareTo(booking.endTime()) < 0
-                && request.endTime().compareTo(booking.startTime()) > 0;
-
-            if (sameRoom && sameDate && overlaps) {
-                return new BookingCreationResult(BookingCreationStatus.CONFLICT, null);
-            }
+        if (hasConflict(request.roomId(), request.date(), request.startTime(), request.endTime())) {
+            return new BookingCreationResult(BookingCreationStatus.CONFLICT, null);
         }
 
         Long id = bookings.size() + 1L;
@@ -82,5 +75,20 @@ public class BookingService {
         bookings.add(booking);
 
         return new BookingCreationResult(BookingCreationStatus.SUCCESS, toBookingResponse(booking));
+    }
+
+    public boolean hasConflict(Long roomId, LocalDate date, LocalTime startTime, LocalTime endTime) {
+        for (Booking booking : bookings) {
+            boolean sameRoom = booking.roomId().equals(roomId);
+            boolean sameDate = booking.date().equals(date);
+            boolean overlaps = startTime.compareTo(booking.endTime()) < 0
+                && endTime.compareTo(booking.startTime()) > 0;
+
+            if (sameRoom && sameDate && overlaps) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
