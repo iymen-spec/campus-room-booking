@@ -4,13 +4,16 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.iymen.campusroombooking.dto.BookingRequest;
 import com.iymen.campusroombooking.dto.BookingResponse;
+import com.iymen.campusroombooking.service.BookingCancellationStatus;
 import com.iymen.campusroombooking.service.BookingCreationResult;
 import com.iymen.campusroombooking.service.BookingCreationStatus;
 import com.iymen.campusroombooking.service.BookingService;
@@ -46,5 +49,16 @@ public class BookingController {
         }
 
         return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    }
+
+    @DeleteMapping("/api/bookings/{id}")
+    public ResponseEntity<Void> cancelBooking(@PathVariable Long id) {
+        BookingCancellationStatus result = bookingService.cancelBooking(id);
+
+        if (result == BookingCancellationStatus.NOT_FOUND) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.noContent().build();
     }
 }

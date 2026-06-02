@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import com.iymen.campusroombooking.dto.BookingRequest;
 import com.iymen.campusroombooking.dto.BookingResponse;
 import com.iymen.campusroombooking.model.Booking;
+import com.iymen.campusroombooking.model.BookingStatus;
 
 @Service
 public class BookingService {
@@ -33,9 +34,9 @@ public class BookingService {
     }
 
     private void loadHardcodedBookings() {
-        bookings.add(new Booking(1L, 1L, "Alice", LocalDate.of(2024, 6, 20), LocalTime.of(10, 0), LocalTime.of(11, 0)));
-        bookings.add(new Booking(2L, 2L, "Bob", LocalDate.of(2024, 6, 20), LocalTime.of(9, 0), LocalTime.of(10, 0)));
-        bookings.add(new Booking(3L, 1L, "Charlie", LocalDate.of(2024, 6, 21), LocalTime.of(14, 0), LocalTime.of(15, 0)));
+        bookings.add(new Booking(1L, 1L, "Alice", LocalDate.of(2024, 6, 20), LocalTime.of(10, 0), LocalTime.of(11, 0), BookingStatus.ACTIVE));
+        bookings.add(new Booking(2L, 2L, "Bob", LocalDate.of(2024, 6, 20), LocalTime.of(9, 0), LocalTime.of(10, 0), BookingStatus.ACTIVE));
+        bookings.add(new Booking(3L, 1L, "Charlie", LocalDate.of(2024, 6, 21), LocalTime.of(14, 0), LocalTime.of(15, 0), BookingStatus.ACTIVE));
     }
 
     private BookingResponse toBookingResponse(Booking booking) {
@@ -45,7 +46,8 @@ public class BookingService {
             booking.bookedBy(),
             booking.date(),
             booking.startTime(),
-            booking.endTime()
+            booking.endTime(),
+            booking.status()
         );
     }
 
@@ -69,7 +71,8 @@ public class BookingService {
             request.bookedBy(),
             request.date(),
             request.startTime(),
-            request.endTime()
+            request.endTime(),
+            BookingStatus.ACTIVE
         );
 
         bookings.add(booking);
@@ -79,6 +82,10 @@ public class BookingService {
 
     public boolean hasConflict(Long roomId, LocalDate date, LocalTime startTime, LocalTime endTime) {
         for (Booking booking : bookings) {
+            if (booking.status() != BookingStatus.ACTIVE) {
+                continue;
+            }
+
             boolean sameRoom = booking.roomId().equals(roomId);
             boolean sameDate = booking.date().equals(date);
             boolean overlaps = startTime.compareTo(booking.endTime()) < 0
@@ -90,5 +97,34 @@ public class BookingService {
         }
 
         return false;
+    }
+
+    public BookingCancellationStatus cancelBooking(Long id) {
+        for (int i = 0; i < bookings.size(); ++i) {
+            Booking booking = bookings.get(i);
+
+            if (id.equals(booking.id())) {
+                if (booking.status() == BookingStatus.CANCELED) {
+                    return BookingCancellationStatus.CANCELED;
+                }
+
+                if (booking.status() == BookingStatus.ACTIVE) {
+                    Booking canceledBooking = new Booking(
+                        booking.id(),
+                        booking.roomId(),
+                        booking.bookedBy(),
+                        booking.date(),
+                        booking.startTime(),
+                        booking.endTime(),
+                        BookingStatus.CANCELED
+                    );
+
+                    bookings.set(i, canceledBooking);
+                    return BookingCancellationStatus.CANCELED;
+                }
+            }
+        }
+
+        return BookingCancellationStatus.NOT_FOUND;
     }
 }
