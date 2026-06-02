@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -11,32 +12,27 @@ import com.iymen.campusroombooking.dto.BookingRequest;
 import com.iymen.campusroombooking.dto.BookingResponse;
 import com.iymen.campusroombooking.model.Booking;
 import com.iymen.campusroombooking.model.BookingStatus;
+import com.iymen.campusroombooking.repository.BookingRepository;
 
 @Service
 public class BookingService {
 
-    private final List<Booking> bookings = new ArrayList<>();
     private final RoomService roomService;
+    private final BookingRepository bookingRepository;
 
-    public BookingService(RoomService roomService) {
+    public BookingService(RoomService roomService, BookingRepository bookingRepository) {
         this.roomService = roomService;
-        loadHardcodedBookings();
+        this.bookingRepository = bookingRepository;
     }
 
     public List<BookingResponse> findAllBookings() {
-        List<BookingResponse> bookingsResp = new ArrayList<>();
+        List<BookingResponse> responses = new ArrayList<>();
 
-        for (Booking booking : bookings) {
-            bookingsResp.add(toBookingResponse(booking));
+        for (Booking booking : bookingRepository.findAll()) {
+            responses.add(toBookingResponse(booking));
         }
 
-        return bookingsResp;
-    }
-
-    private void loadHardcodedBookings() {
-        bookings.add(new Booking(1L, 1L, "Alice", LocalDate.of(2024, 6, 20), LocalTime.of(10, 0), LocalTime.of(11, 0), BookingStatus.ACTIVE));
-        bookings.add(new Booking(2L, 2L, "Bob", LocalDate.of(2024, 6, 20), LocalTime.of(9, 0), LocalTime.of(10, 0), BookingStatus.ACTIVE));
-        bookings.add(new Booking(3L, 1L, "Charlie", LocalDate.of(2024, 6, 21), LocalTime.of(14, 0), LocalTime.of(15, 0), BookingStatus.ACTIVE));
+        return responses;
     }
 
     private BookingResponse toBookingResponse(Booking booking) {
@@ -64,7 +60,7 @@ public class BookingService {
             return new BookingCreationResult(BookingCreationStatus.CONFLICT, null);
         }
 
-        Long id = bookings.size() + 1L;
+        Long id = bookingRepository.nextId();
         Booking booking = new Booking(
             id,
             request.roomId(),
@@ -75,13 +71,13 @@ public class BookingService {
             BookingStatus.ACTIVE
         );
 
-        bookings.add(booking);
+        bookingRepository.save(booking);
 
         return new BookingCreationResult(BookingCreationStatus.SUCCESS, toBookingResponse(booking));
     }
 
     public boolean hasConflict(Long roomId, LocalDate date, LocalTime startTime, LocalTime endTime) {
-        for (Booking booking : bookings) {
+        for (Booking booking : bookingRepository.findAll()) {
             if (booking.status() != BookingStatus.ACTIVE) {
                 continue;
             }
@@ -100,31 +96,34 @@ public class BookingService {
     }
 
     public BookingCancellationStatus cancelBooking(Long id) {
-        for (int i = 0; i < bookings.size(); ++i) {
-            Booking booking = bookings.get(i);
+        Optional<Booking> bookingOpt = bookingRepository.findById(id);
 
-            if (id.equals(booking.id())) {
-                if (booking.status() == BookingStatus.CANCELED) {
-                    return BookingCancellationStatus.CANCELED;
-                }
-
-                if (booking.status() == BookingStatus.ACTIVE) {
-                    Booking canceledBooking = new Booking(
-                        booking.id(),
-                        booking.roomId(),
-                        booking.bookedBy(),
-                        booking.date(),
-                        booking.startTime(),
-                        booking.endTime(),
-                        BookingStatus.CANCELED
-                    );
-
-                    bookings.set(i, canceledBooking);
-                    return BookingCancellationStatus.CANCELED;
-                }
-            }
+        if (bookingOpt.isEmpty()) {
+            return BookingCancellationStatus.NOT_FOUND;
         }
 
-        return BookingCancellationStatus.NOT_FOUND;
+        Booking booking = bookingOpt.get();
+
+        if (booking.status() == BookingStatus.CANCELED) {
+            return BookingCancellationStatus.CANCELED;
+        }
+
+        Booking canceledBooking = new Booking(
+            booking.id(),
+            booking.roomId(),
+            booking.bookedBy(),
+            booking.date(),
+            booking.startTime(),
+            booking.endTime(),
+            BookingStatus.CANCELED
+        );
+
+        boolean replaced = bookingRepository.replace(canceledBooking);
+
+        if (!replaced) {
+            return BookingCancellationStatus.NOT_FOUND;
+        }
+
+        return BookingCancellationStatus.CANCELED;
     }
 }
