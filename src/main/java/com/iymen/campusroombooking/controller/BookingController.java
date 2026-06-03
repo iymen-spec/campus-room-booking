@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
 
 import com.iymen.campusroombooking.dto.BookingRequest;
 import com.iymen.campusroombooking.dto.BookingResponse;
@@ -51,7 +52,7 @@ public class BookingController {
     }
 
     @PostMapping("/api/bookings")
-    public ResponseEntity<BookingResponse> createBooking(@RequestBody BookingRequest request) {
+    public ResponseEntity<BookingResponse> createBooking(@Valid @RequestBody BookingRequest request) {
         BookingCreationResult result = bookingService.createBooking(request);
 
         if (result.status() == BookingCreationStatus.SUCCESS) {
