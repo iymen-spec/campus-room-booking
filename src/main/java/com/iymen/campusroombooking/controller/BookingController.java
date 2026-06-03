@@ -2,6 +2,7 @@ package com.iymen.campusroombooking.controller;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,8 +32,11 @@ public class BookingController {
     }
 
     @GetMapping("/api/bookings")
-    public List<BookingResponse> bookings(@RequestParam(required = false) BookingStatus status) {
-        return bookingService.findBookings(status);
+    public List<BookingResponse> bookings(
+        @RequestParam(required = false) BookingStatus status,
+        @RequestParam(required = false) Long roomId,
+        @RequestParam(required = false) LocalDate date) {
+        return bookingService.findBookings(status,roomId,date);
     }
 
     @GetMapping("/api/bookings/{id}")

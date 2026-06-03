@@ -25,13 +25,15 @@ public class BookingService {
         this.bookingRepository = bookingRepository;
     }
 
-    public List<BookingResponse> findBookings(BookingStatus status) {
+    public List<BookingResponse> findBookings(BookingStatus status, Long roomId, LocalDate date) {
         List<BookingResponse> responses = new ArrayList<>();
 
         for (Booking booking : bookingRepository.findAll()) {
             boolean matchingStatus = status == null || booking.status() == status;
+			boolean matchingRoomId = roomId == null || booking.roomId().equals(roomId);
+			boolean matchingDate = date == null || booking.date().equals(date);
 
-            if (matchingStatus) {
+            if (matchingStatus && matchingRoomId && matchingDate) {
                 responses.add(toBookingResponse(booking));
             }
         }
