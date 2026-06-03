@@ -25,14 +25,28 @@ public class BookingService {
         this.bookingRepository = bookingRepository;
     }
 
-    public List<BookingResponse> findAllBookings() {
+    public List<BookingResponse> findBookings(BookingStatus status) {
         List<BookingResponse> responses = new ArrayList<>();
 
         for (Booking booking : bookingRepository.findAll()) {
-            responses.add(toBookingResponse(booking));
+            boolean matchingStatus = status == null || booking.status() == status;
+
+            if (matchingStatus) {
+                responses.add(toBookingResponse(booking));
+            }
         }
 
         return responses;
+    }
+
+    public Optional<BookingResponse> findBookingById(Long id) {
+        Optional<Booking> bookingOpt = bookingRepository.findById(id);
+
+        if (bookingOpt.isPresent()) {
+            return Optional.of(toBookingResponse(bookingOpt.get()));
+        }
+
+        return Optional.empty();
     }
 
     private BookingResponse toBookingResponse(Booking booking) {

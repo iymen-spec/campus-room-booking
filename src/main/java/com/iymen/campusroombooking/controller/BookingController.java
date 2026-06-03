@@ -1,6 +1,7 @@
 package com.iymen.campusroombooking.controller;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,10 +10,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.iymen.campusroombooking.dto.BookingRequest;
 import com.iymen.campusroombooking.dto.BookingResponse;
+import com.iymen.campusroombooking.model.BookingStatus;
 import com.iymen.campusroombooking.service.BookingCancellationStatus;
 import com.iymen.campusroombooking.service.BookingCreationResult;
 import com.iymen.campusroombooking.service.BookingCreationStatus;
@@ -28,8 +31,19 @@ public class BookingController {
     }
 
     @GetMapping("/api/bookings")
-    public List<BookingResponse> bookings() {
-        return bookingService.findAllBookings();
+    public List<BookingResponse> bookings(@RequestParam(required = false) BookingStatus status) {
+        return bookingService.findBookings(status);
+    }
+
+    @GetMapping("/api/bookings/{id}")
+    public ResponseEntity<BookingResponse> booking(@PathVariable Long id) {
+        Optional<BookingResponse> booking = bookingService.findBookingById(id);
+
+        if (booking.isPresent()) {
+            return ResponseEntity.ok(booking.get());
+        }
+
+        return ResponseEntity.notFound().build();
     }
 
     @PostMapping("/api/bookings")
