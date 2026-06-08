@@ -38,6 +38,37 @@ public class BookingControllerTest {
         }
 
         @Test
+        public void createBooking_withMissingDate_returnsBadRequestAndErrorMessage() throws Exception {
+                String requestJson = """
+                                {
+                                  "roomId": 3,
+                                  "bookedBy": "John Doe",
+                                  "startTime": "10:00",
+                                  "endTime": "11:00"
+                                }
+                                """;
+                mockMvc.perform(post("/api/bookings")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestJson))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message").value("date must not be null"));
+        }
+
+        @Test
+        public void createBooking_withMalformedRequest_returnsBadRequestAndErrorMessage() throws Exception {
+                String requestJson = """
+                                {
+                                  "roomId": 3,
+                                  "bookedBy": "John Doe"
+                                """;
+                mockMvc.perform(post("/api/bookings")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestJson))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message").value("Malformed request body."));
+        }
+
+        @Test
         public void createBooking_withConflict_returnsConflictAndErrorMessage() throws Exception {
                 String requestJson = """
                                 {
@@ -69,7 +100,16 @@ public class BookingControllerTest {
                 mockMvc.perform(post("/api/bookings")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestJson))
-                                .andExpect(status().isBadRequest());
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message")
+                                                .value("bookedBy must not be blank"));
+        }
+
+        @Test
+        public void getBookings_withInvalidStatus_returnsBadRequestAndErrorMessage() throws Exception {
+                mockMvc.perform(get("/api/bookings?status=BROKEN"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message").value("Invalid value for status."));
         }
 
         @Test
@@ -94,4 +134,20 @@ public class BookingControllerTest {
                                 .andExpect(jsonPath("$.message")
                                                 .value("Start time must be before end time."));
         }
+
+        @Test
+        public void getAvailableRooms_withMissingDate_returnsBadRequestAndErrorMessage() throws Exception {
+                mockMvc.perform(get("/api/rooms/available?startTime=10:00&endTime=11:00"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message").value("Missing required parameter: date."));
+        }
+
+        @Test
+        public void getAvailableRooms_withInvalidDate_returnsBadRequestAndErrorMessage() throws Exception {
+                mockMvc.perform(get(
+                                "/api/rooms/available?date=whatever&startTime=10:00&endTime=11:00"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message").value("Invalid value for date."));
+        }
+
 }
