@@ -2,24 +2,33 @@ package com.iymen.campusroombooking.service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Optional;
+import java.util.List;
 
 import com.iymen.campusroombooking.dto.RoomResponse;
-import com.iymen.campusroombooking.repository.RoomRepository;
 import com.iymen.campusroombooking.repository.BookingRepository;
+
 import com.iymen.campusroombooking.dto.BookingRequest;
 import com.iymen.campusroombooking.model.BookingStatus;
 
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class BookingServiceTest {
 
     @Test
     public void createBooking_withValidRequest_returnsSuccess() {
 
-        RoomRepository roomRepository = new RoomRepository();
         BookingRepository bookingRepository = new BookingRepository();
-        RoomService roomService = new RoomService(roomRepository);
+
+        RoomService roomService = mock(RoomService.class);
+
+        when(roomService.findRoomById(1L))
+                .thenReturn(Optional.of(new RoomResponse(1L, "101", "Science Hall", 30)));
+
         BookingService bookingService = new BookingService(roomService, bookingRepository);
 
         BookingRequest bookingRequest = new BookingRequest(
@@ -36,9 +45,8 @@ public class BookingServiceTest {
     @Test
     public void createBooking_withInvalidTime_returnsInvalidTime() {
 
-        RoomRepository roomRepository = new RoomRepository();
+        RoomService roomService = mock(RoomService.class);
         BookingRepository bookingRepository = new BookingRepository();
-        RoomService roomService = new RoomService(roomRepository);
         BookingService bookingService = new BookingService(roomService, bookingRepository);
 
         BookingRequest bookingRequest = new BookingRequest(
@@ -55,9 +63,10 @@ public class BookingServiceTest {
     @Test
     public void createBooking_withOverlappingActiveBooking_returnsConflict() {
 
-        RoomRepository roomRepository = new RoomRepository();
         BookingRepository bookingRepository = new BookingRepository();
-        RoomService roomService = new RoomService(roomRepository);
+        RoomService roomService = mock(RoomService.class);
+        when(roomService.findRoomById(1L))
+                .thenReturn(Optional.of(new RoomResponse(1L, "101", "Science Hall", 30)));
         BookingService bookingService = new BookingService(roomService, bookingRepository);
 
         BookingRequest request = new BookingRequest(
@@ -73,9 +82,11 @@ public class BookingServiceTest {
 
     @Test
     public void createBooking_withBackToBackBooking_returnsSuccess() {
-        RoomRepository roomRepository = new RoomRepository();
+
         BookingRepository bookingRepository = new BookingRepository();
-        RoomService roomService = new RoomService(roomRepository);
+        RoomService roomService = mock(RoomService.class);
+        when(roomService.findRoomById(1L))
+                .thenReturn(Optional.of(new RoomResponse(1L, "101", "Science Hall", 30)));
         BookingService bookingService = new BookingService(roomService, bookingRepository);
 
         BookingRequest request = new BookingRequest(
@@ -91,9 +102,11 @@ public class BookingServiceTest {
 
     @Test
     public void createBooking_afterCancelingConflictingBooking_returnsSuccess() {
-        RoomRepository roomRepository = new RoomRepository();
+
         BookingRepository bookingRepository = new BookingRepository();
-        RoomService roomService = new RoomService(roomRepository);
+        RoomService roomService = mock(RoomService.class);
+        when(roomService.findRoomById(1L))
+                .thenReturn(Optional.of(new RoomResponse(1L, "101", "Science Hall", 30)));
         BookingService bookingService = new BookingService(roomService, bookingRepository);
 
         BookingCancellationStatus cancelResult = bookingService.cancelBooking(1L);
@@ -113,9 +126,13 @@ public class BookingServiceTest {
     @Test
     public void findAvailableRooms_afterCancelingConflictingBooking_includesRoom() {
 
-        RoomRepository roomRepository = new RoomRepository();
         BookingRepository bookingRepository = new BookingRepository();
-        RoomService roomService = new RoomService(roomRepository);
+        RoomService roomService = mock(RoomService.class);
+        when(roomService.findRooms(null, null))
+                .thenReturn(List.of(
+                        new RoomResponse(1L, "101", "Science Hall", 30),
+                        new RoomResponse(2L, "202", "Library", 6),
+                        new RoomResponse(3L, "303", "Oren Gateway", 20)));
         BookingService bookingService = new BookingService(roomService, bookingRepository);
         AvailabilityService availabilityService = new AvailabilityService(bookingService, roomService);
         BookingCancellationStatus canceled = bookingService.cancelBooking(1L);

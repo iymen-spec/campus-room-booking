@@ -1,36 +1,47 @@
 package com.iymen.campusroombooking.repository;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
+import com.iymen.campusroombooking.entity.RoomEntity;
 import com.iymen.campusroombooking.model.Room;
 
 @Repository
 public class RoomRepository {
 
-    private final List<Room> rooms = hardcodedRooms();
+    private final RoomJpaRepository roomJpaRepository;
 
-    public List<Room> findAll() {
-        return rooms;
+    public RoomRepository(RoomJpaRepository roomJpaRepository) {
+        this.roomJpaRepository = roomJpaRepository;
     }
 
-    private List<Room> hardcodedRooms() {
-        return List.of(
-            new Room(1L, "101", "Science Hall", 30),
-            new Room(2L, "202", "Library", 6),
-            new Room(3L, "303", "Oren Gateway", 20)
-        );
+    public List<Room> findAll() {
+        List<RoomEntity> roomEntities = roomJpaRepository.findAll();
+
+        List<Room> rooms = new ArrayList<>();
+        for (RoomEntity roomEntity : roomEntities) {
+            rooms.add(toRoom(roomEntity));
+        }
+        return rooms;
+
+    }
+
+    private Room toRoom(RoomEntity roomEntity) {
+        return new Room(
+                roomEntity.getId(),
+                roomEntity.getRoomNumber(),
+                roomEntity.getBuilding(),
+                roomEntity.getCapacity());
     }
 
     public Optional<Room> findById(Long id) {
-        for (Room room : rooms) {
-            if (room.id().equals(id)) {
-                return Optional.of(room);
-            }
+        Optional<RoomEntity> roomEntity = roomJpaRepository.findById(id);
+        if (roomEntity.isPresent()) {
+            return Optional.of(toRoom(roomEntity.get()));
         }
-
         return Optional.empty();
     }
 }
