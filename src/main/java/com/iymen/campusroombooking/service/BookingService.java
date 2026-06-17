@@ -30,8 +30,8 @@ public class BookingService {
 
         for (Booking booking : bookingRepository.findAll()) {
             boolean matchingStatus = status == null || booking.status() == status;
-			boolean matchingRoomId = roomId == null || booking.roomId().equals(roomId);
-			boolean matchingDate = date == null || booking.date().equals(date);
+            boolean matchingRoomId = roomId == null || booking.roomId().equals(roomId);
+            boolean matchingDate = date == null || booking.date().equals(date);
 
             if (matchingStatus && matchingRoomId && matchingDate) {
                 responses.add(toBookingResponse(booking));
@@ -53,14 +53,13 @@ public class BookingService {
 
     private BookingResponse toBookingResponse(Booking booking) {
         return new BookingResponse(
-            booking.id(),
-            booking.roomId(),
-            booking.bookedBy(),
-            booking.date(),
-            booking.startTime(),
-            booking.endTime(),
-            booking.status()
-        );
+                booking.id(),
+                booking.roomId(),
+                booking.bookedBy(),
+                booking.date(),
+                booking.startTime(),
+                booking.endTime(),
+                booking.status());
     }
 
     public BookingCreationResult createBooking(BookingRequest request) {
@@ -76,20 +75,18 @@ public class BookingService {
             return new BookingCreationResult(BookingCreationStatus.CONFLICT, null);
         }
 
-        Long id = bookingRepository.nextId();
         Booking booking = new Booking(
-            id,
-            request.roomId(),
-            request.bookedBy(),
-            request.date(),
-            request.startTime(),
-            request.endTime(),
-            BookingStatus.ACTIVE
-        );
+                null,
+                request.roomId(),
+                request.bookedBy(),
+                request.date(),
+                request.startTime(),
+                request.endTime(),
+                BookingStatus.ACTIVE);
 
-        bookingRepository.save(booking);
+        Booking savedBooking = bookingRepository.save(booking);
 
-        return new BookingCreationResult(BookingCreationStatus.SUCCESS, toBookingResponse(booking));
+        return new BookingCreationResult(BookingCreationStatus.SUCCESS, toBookingResponse(savedBooking));
     }
 
     public boolean hasConflict(Long roomId, LocalDate date, LocalTime startTime, LocalTime endTime) {
@@ -101,7 +98,7 @@ public class BookingService {
             boolean sameRoom = booking.roomId().equals(roomId);
             boolean sameDate = booking.date().equals(date);
             boolean overlaps = startTime.compareTo(booking.endTime()) < 0
-                && endTime.compareTo(booking.startTime()) > 0;
+                    && endTime.compareTo(booking.startTime()) > 0;
 
             if (sameRoom && sameDate && overlaps) {
                 return true;
@@ -125,14 +122,13 @@ public class BookingService {
         }
 
         Booking canceledBooking = new Booking(
-            booking.id(),
-            booking.roomId(),
-            booking.bookedBy(),
-            booking.date(),
-            booking.startTime(),
-            booking.endTime(),
-            BookingStatus.CANCELED
-        );
+                booking.id(),
+                booking.roomId(),
+                booking.bookedBy(),
+                booking.date(),
+                booking.startTime(),
+                booking.endTime(),
+                BookingStatus.CANCELED);
 
         boolean replaced = bookingRepository.replace(canceledBooking);
 

@@ -1,5 +1,7 @@
 package com.iymen.campusroombooking.controller;
 
+import org.springframework.transaction.annotation.Transactional;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -11,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+@Transactional
 @SpringBootTest
 @AutoConfigureMockMvc
 public class BookingControllerTest {
@@ -74,7 +77,7 @@ public class BookingControllerTest {
                                 {
                                   "roomId": 1,
                                   "bookedBy": "John Doe",
-                                  "date": "2024-06-20",
+                                  "date": "2026-06-20",
                                   "startTime": "10:30",
                                   "endTime": "11:30"
                                 }
@@ -129,7 +132,7 @@ public class BookingControllerTest {
         @Test
         public void getAvailableRooms_withInvalidTime_returnsBadRequestAndErrorMessage() throws Exception {
                 mockMvc.perform(get(
-                                "/api/rooms/available?date=2024-06-20&startTime=11:30&endTime=11:00"))
+                                "/api/rooms/available?date=2026-06-20&startTime=11:30&endTime=11:00"))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.message")
                                                 .value("Start time must be before end time."));
