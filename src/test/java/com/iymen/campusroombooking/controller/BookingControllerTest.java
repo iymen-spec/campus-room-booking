@@ -1,8 +1,8 @@
 package com.iymen.campusroombooking.controller;
 
 import org.springframework.transaction.annotation.Transactional;
-
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import org.junit.jupiter.api.Test;
@@ -11,12 +11,14 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 @Transactional
 @SpringBootTest
 @AutoConfigureMockMvc
 public class BookingControllerTest {
+
         @Autowired
         private MockMvc mockMvc;
 
@@ -104,8 +106,7 @@ public class BookingControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestJson))
                                 .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.message")
-                                                .value("bookedBy must not be blank"));
+                                .andExpect(jsonPath("$.message").value("bookedBy must not be blank"));
         }
 
         @Test
@@ -134,8 +135,7 @@ public class BookingControllerTest {
                 mockMvc.perform(get(
                                 "/api/rooms/available?date=2026-06-20&startTime=11:30&endTime=11:00"))
                                 .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.message")
-                                                .value("Start time must be before end time."));
+                                .andExpect(jsonPath("$.message").value("Start time must be before end time."));
         }
 
         @Test
@@ -151,6 +151,118 @@ public class BookingControllerTest {
                                 "/api/rooms/available?date=whatever&startTime=10:00&endTime=11:00"))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.message").value("Invalid value for date."));
+        }
+
+        @Test
+        public void rescheduleBooking_withValidRequest_returnsOkAndUpdatedBooking() throws Exception {
+                String requestJson = """
+                                {
+                                  "roomId": 2,
+                                  "date": "2027-01-15",
+                                  "startTime": "12:00",
+                                  "endTime": "13:00"
+                                }
+                                """;
+
+                mockMvc.perform(put("/api/bookings/1/reschedule")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestJson))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.id").value(1))
+                                .andExpect(jsonPath("$.roomId").value(2))
+                                .andExpect(jsonPath("$.bookedBy").value("Alice"))
+                                .andExpect(jsonPath("$.date").value("2027-01-15"))
+                                .andExpect(jsonPath("$.startTime").value("12:00:00"))
+                                .andExpect(jsonPath("$.endTime").value("13:00:00"))
+                                .andExpect(jsonPath("$.status").value("ACTIVE"));
+        }
+
+        @Test
+        public void rescheduleBooking_withMissingBooking_returnsNotFound() throws Exception {
+                String requestJson = """
+                                {
+                                  "roomId": 2,
+                                  "date": "2027-01-15",
+                                  "startTime": "12:00",
+                                  "endTime": "13:00"
+                                }
+                                """;
+                mockMvc.perform(put("/api/bookings/999/reschedule")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestJson))
+                                .andExpect(status().isNotFound())
+                                .andExpect(jsonPath("$.message").value("Booking not found."));
+        }
+
+        @Test
+        public void rescheduleBooking_withInvalidTime_returnsBadRequest() throws Exception {
+                String requestJson = """
+                                {
+                                  "roomId": 2,
+                                  "date": "2027-01-15",
+                                  "startTime": "13:00",
+                                  "endTime": "12:00"
+                                }
+                                """;
+                mockMvc.perform(put("/api/bookings/1/reschedule")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestJson))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message").value("Start time must be before end time."));
+        }
+
+        @Test
+        public void rescheduleBooking_withConflicting_returnsConflict() throws Exception {
+                String requestJson = """
+                                {
+                                  "roomId": 2,
+                                  "date": "2026-08-03",
+                                  "startTime": "09:30",
+                                  "endTime": "09:45"
+                                }
+                                """;
+                mockMvc.perform(put("/api/bookings/1/reschedule")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestJson))
+                                .andExpect(status().isConflict())
+                                .andExpect(jsonPath("$.message").value("Room is already booked for that time."));
+        }
+
+        @Test
+        public void rescheduleBooking_withValidationFailure_returnsBadRequest() throws Exception {
+                String requestJson = """
+                                {
+                                  "date": "2027-08-03",
+                                  "startTime": "09:30",
+                                  "endTime": "09:45"
+                                }
+                                """;
+                mockMvc.perform(put("/api/bookings/1/reschedule")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestJson))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message").value("roomId must not be null"));
+        }
+
+        @Test
+        public void rescheduleBooking_withCanceledBooking_returnsConflict() throws Exception {
+
+                String requestJson = """
+                                {
+                                  "roomId": 2,
+                                  "date": "2026-08-03",
+                                  "startTime": "13:30",
+                                  "endTime": "14:45"
+                                }
+                                """;
+                mockMvc.perform(delete("/api/bookings/1"))
+                                .andExpect(status().isNoContent());
+
+                mockMvc.perform(put("/api/bookings/1/reschedule")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestJson))
+                                .andExpect(status().isConflict())
+                                .andExpect(jsonPath("$.message").value("Canceled booking cannot be rescheduled."));
         }
 
 }

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,6 +24,9 @@ import com.iymen.campusroombooking.service.BookingCreationResult;
 import com.iymen.campusroombooking.service.BookingCreationStatus;
 import com.iymen.campusroombooking.service.BookingService;
 import com.iymen.campusroombooking.dto.ErrorResponse;
+import com.iymen.campusroombooking.dto.BookingRescheduleRequest;
+import com.iymen.campusroombooking.service.BookingRescheduleResult;
+import com.iymen.campusroombooking.service.BookingRescheduleStatus;
 
 @RestController
 public class BookingController {
@@ -95,4 +99,45 @@ public class BookingController {
                 .noContent()
                 .build();
     }
+
+    @PutMapping("/api/bookings/{id}/reschedule")
+    public ResponseEntity<?> rescheduleBooking(
+            @PathVariable Long id,
+            @Valid @RequestBody BookingRescheduleRequest request) {
+
+        BookingRescheduleResult result = bookingService.rescheduleBooking(id, request);
+
+        if (result.status() == BookingRescheduleStatus.SUCCESS) {
+            return ResponseEntity.ok(result.bookingResponse());
+        }
+
+        if (result.status() == BookingRescheduleStatus.INVALID_TIME) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new ErrorResponse("Start time must be before end time."));
+        }
+
+        if (result.status() == BookingRescheduleStatus.BOOKING_NOT_FOUND) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse("Booking not found."));
+        }
+
+        if (result.status() == BookingRescheduleStatus.ROOM_NOT_FOUND) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse("Room not found."));
+        }
+
+        if (result.status() == BookingRescheduleStatus.CANCELED_BOOKING) {
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body(new ErrorResponse("Canceled booking cannot be rescheduled."));
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("Room is already booked for that time."));
+    }
+
 }

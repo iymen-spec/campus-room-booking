@@ -9,6 +9,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 import com.iymen.campusroombooking.dto.BookingRequest;
+import com.iymen.campusroombooking.dto.BookingRescheduleRequest;
 import com.iymen.campusroombooking.dto.BookingResponse;
 import com.iymen.campusroombooking.model.Booking;
 import com.iymen.campusroombooking.model.BookingStatus;
@@ -90,11 +91,18 @@ public class BookingService {
     }
 
     public boolean hasConflict(Long roomId, LocalDate date, LocalTime startTime, LocalTime endTime) {
+        return hasConflictIgnoringBooking(null, roomId, date, startTime, endTime);
+    }
+
+    private boolean hasConflictIgnoringBooking(Long ignoredBookingId, Long roomId, LocalDate date, LocalTime startTime,
+            LocalTime endTime) {
         for (Booking booking : bookingRepository.findAll()) {
+            if (ignoredBookingId != null && ignoredBookingId.equals(booking.id())) {
+                continue;
+            }
             if (booking.status() != BookingStatus.ACTIVE) {
                 continue;
             }
-
             boolean sameRoom = booking.roomId().equals(roomId);
             boolean sameDate = booking.date().equals(date);
             boolean overlaps = startTime.compareTo(booking.endTime()) < 0
@@ -106,6 +114,7 @@ public class BookingService {
         }
 
         return false;
+
     }
 
     public BookingCancellationStatus cancelBooking(Long id) {
@@ -137,5 +146,40 @@ public class BookingService {
         }
 
         return BookingCancellationStatus.CANCELED;
+    }
+
+    public BookingRescheduleResult rescheduleBooking(Long id, BookingRescheduleRequest request) {
+
+        Optional<Booking> existingBookingOpt = bookingRepository.findById(id);
+        if (existingBookingOpt.isEmpty()) {
+            return new BookingRescheduleResult(BookingRescheduleStatus.BOOKING_NOT_FOUND, null);
+        }
+        Booking existingBooking = existingBookingOpt.get();
+
+        if (existingBooking.status() == BookingStatus.CANCELED) {
+            return new BookingRescheduleResult(BookingRescheduleStatus.CANCELED_BOOKING, null);
+        }
+        if (request.startTime().compareTo(request.endTime()) >= 0) {
+            return new BookingRescheduleResult(BookingRescheduleStatus.INVALID_TIME, null);
+        }
+        if (roomService.findRoomById(request.roomId()).isEmpty()) {
+            return new BookingRescheduleResult(BookingRescheduleStatus.ROOM_NOT_FOUND, null);
+        }
+        if (hasConflictIgnoringBooking(id, request.roomId(), request.date(), request.startTime(), request.endTime())) {
+            return new BookingRescheduleResult(BookingRescheduleStatus.CONFLICT, null);
+        }
+        Booking updatedBooking = new Booking(
+                existingBooking.id(),
+                request.roomId(),
+                existingBooking.bookedBy(),
+                request.date(),
+                request.startTime(),
+                request.endTime(),
+                existingBooking.status());
+        boolean isReplaced = bookingRepository.replace(updatedBooking);
+        if (!isReplaced) {
+            return new BookingRescheduleResult(BookingRescheduleStatus.BOOKING_NOT_FOUND, null);
+        }
+        return new BookingRescheduleResult(BookingRescheduleStatus.SUCCESS, toBookingResponse(updatedBooking));
     }
 }
