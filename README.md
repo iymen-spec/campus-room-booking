@@ -1,23 +1,57 @@
 # Campus Room Booking Platform
 
-A web application that lets students book campus rooms and study spaces.
+A Spring Boot backend API for searching campus rooms, checking room availability, creating bookings, canceling bookings, and rescheduling bookings.
 
 ## Project Goal
 
-The goal of this project is to build a realistic backend application using Java Spring Boot and PostgreSQL.
+The goal of this project is to build a realistic backend application using Java, Spring Boot, PostgreSQL, and layered backend architecture.
 
-The main challenge is preventing two users from booking the same room at the same time.
+The core backend challenge is preventing two active bookings from reserving the same room during overlapping times, while still allowing back-to-back bookings and ignoring canceled bookings.
 
-## Planned Tech Stack
+## Implemented Backend Features
 
-- Java
-- Spring Boot
-- PostgreSQL
-- HTML
-- CSS
-- JavaScript
-- Git
-- GitHub
+* List campus rooms
+* Look up a room by id
+* Filter rooms by building and minimum capacity
+* Search for available rooms by date and time
+* Create room bookings
+* Prevent overlapping active bookings
+* Allow back-to-back bookings
+* Cancel bookings
+* Reschedule bookings
+* Look up and filter bookings
+* Validate request bodies and request parameters
+* Return consistent error responses
+* Persist rooms and bookings with PostgreSQL
+* Run PostgreSQL locally with Docker Compose
+
+## Tech Stack
+
+* Java 25
+* Spring Boot 4
+* Maven
+* PostgreSQL
+* Docker Compose
+* Spring Data JPA
+* Bean Validation
+* JUnit
+* MockMvc
+* Git / GitHub
+
+## Architecture
+
+This project uses a layered backend structure:
+
+* **Controller**: handles HTTP requests and responses
+* **Service**: owns business rules and application workflows
+* **Repository**: owns persistence and data access
+* **Entity**: represents database tables for JPA
+* **Model**: represents internal domain concepts
+* **DTO**: represents API request and response shapes
+
+Controllers do not talk directly to repositories. Services own booking rules such as time validation, room existence checks, conflict prevention, cancellation rules, and rescheduling rules.
+
+JPA entities stay inside the persistence layer and do not leak into API responses. API responses use DTOs instead.
 
 ## Local Development Setup
 
@@ -96,12 +130,118 @@ docker compose up -d
 
 Only use `docker compose down -v` when you want to delete the local database data.
 
-## MVP Features
+## API Endpoints
 
-- User can register and log in
-- Admin can create rooms
-- User can view available rooms
-- User can book a room
-- System prevents overlapping bookings
-- User can cancel a booking
-- Admin can view all bookings
+### Health
+
+| Method | Endpoint      | Description                   |
+| ------ | ------------- | ----------------------------- |
+| GET    | `/api/health` | Check that the API is running |
+
+### Rooms
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET    | `/api/rooms`                                                         | List all rooms                                    |
+| GET    | `/api/rooms/{id}`                                                    | Look up a room by ID                              |
+| GET    | `/api/rooms?building=Library`                                        | Filter rooms by building                          |
+| GET    | `/api/rooms?minCapacity=20`                                          | Filter rooms by minimum capacity                  |
+| GET    | `/api/rooms/available?date=2026-06-20&startTime=10:00&endTime=11:00` | Find rooms available during a date and time range |
+
+### Bookings
+
+| Method | Endpoint                        | Description               |
+| ------ | ------------------------------- | ------------------------- |
+| GET    | `/api/bookings`                 | List bookings             |
+| GET    | `/api/bookings/{id}`            | Look up a booking by ID   |
+| GET    | `/api/bookings?status=ACTIVE`   | Filter bookings by status |
+| GET    | `/api/bookings?roomId=1`        | Filter bookings by room   |
+| GET    | `/api/bookings?date=2026-06-20` | Filter bookings by date   |
+| POST   | `/api/bookings`                 | Create a booking          |
+| DELETE | `/api/bookings/{id}`            | Cancel a booking          |
+| PUT    | `/api/bookings/{id}/reschedule` | Reschedule a booking      |
+
+## Request Examples
+
+### Create a Booking
+
+`POST /api/bookings`
+
+```json
+{
+  "roomId": 1,
+  "bookedBy": "Alice",
+  "date": "2026-06-22",
+  "startTime": "10:00",
+  "endTime": "11:00"
+}
+```
+
+### Reschedule a Booking
+
+`PUT /api/bookings/{id}/reschedule`
+
+```json
+{
+  "roomId": 2,
+  "date": "2026-06-23",
+  "startTime": "13:00",
+  "endTime": "14:00"
+}
+```
+
+The reschedule request does not accept `id`, `bookedBy`, or `status`. The existing booking keeps its ID, user, and status while changing room, date, start time, and end time.
+
+## Business Rules
+
+* Start time must be before end time
+* A booking can only be created for an existing room
+* Overlapping active bookings for the same room and date are rejected
+* Back-to-back bookings are allowed
+* Canceled bookings do not block room availability
+* Canceled bookings do not cause booking conflicts
+* Canceled bookings cannot be rescheduled
+* Rescheduling checks for conflicts against other active bookings, but ignores the booking being updated
+* Booking IDs are generated by the database
+* Canceling a booking changes its status instead of deleting the database row
+
+## Error Responses
+
+Error responses use this shape:
+
+```json
+{
+  "message": "..."
+}
+```
+
+Common examples:
+
+| Situation                                 | HTTP Status       |
+| ----------------------------------------- | ----------------- |
+| Invalid request body or request parameter | `400 Bad Request` |
+| Missing room or booking                   | `404 Not Found`   |
+| Booking conflict                          | `409 Conflict`    |
+
+## Testing
+
+This project includes service tests and API/controller tests.
+
+Service tests protect business rules such as conflict detection, cancellation behavior, rescheduling behavior, invalid time handling, and missing room/booking cases.
+
+MockMvc tests protect HTTP behavior such as status codes, request validation, endpoint routing, and response bodies.
+
+Run all tests with:
+
+```powershell
+./mvnw test
+```
+
+## Current Limitations / Future Work
+
+* Frontend UI
+* User authentication and booking ownership
+* Admin room management
+* Database integration testing
+* Concurrency protection for simultaneous booking attempts
+* Deployment
