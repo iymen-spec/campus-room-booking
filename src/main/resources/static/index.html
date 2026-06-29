@@ -1,22 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <title>Campus Room Booking</title>
-        <link rel="stylesheet" href="styles.css">
-        <script src="app.js" defer></script>
 
-    </head>
-    <body>
-        <h1>Campus Room Booking</h1>
-        <p>A backend API demo for viewing campus rooms and bookings.</p>
+<head>
+    <meta charset="utf-8">
+    <title>Campus Room Booking</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
 
-        <h2>Rooms</h2>
-        <div id="rooms-status"></div>
-        <div id="rooms-list"></div>
+</head>
 
-        <h2>Bookings</h2>
-        <div id="bookings-status"></div>
-        <div id="bookings-list"></div>
-    </body>
+<body>
+    <h1>Campus Room Booking</h1>
+    <p>A backend API demo for viewing campus rooms and bookings.</p>
+
+    <h2>Search Availability</h2>
+    <form id="availability-form">
+
+        <label for="booked-by">Name: </label>
+        <input type="text" name="booked-by" id="booked-by" placeholder="Enter Your Name" required>
+
+        <label for="availability-date">Date: </label>
+        <input type="date" name="availability-date" id="availability-date" required>
+
+        <label for="availability-start-time">Start Time: </label>
+        <input type="time" name="availability-start-time" id="availability-start-time" required>
+
+        <label for="availability-end-time">End Time: </label>
+        <input type="time" name="availability-end-time" id="availability-end-time" required>
+
+        <label for="availability-building">Building: </label>
+        <input type="text" name="availability-building" id="availability-building">
+
+        <label for="availability-min-capacity">Minimum Capacity: </label>
+        <input type="number" name="availability-min-capacity" id="availability-min-capacity" min="0">
+
+        <button type="submit">Search availability</button>
+    </form>
+
+    <div id="availability-status"></div>
+    <div id="available-rooms-list"></div>
+
+    <h2>Rooms</h2>
+    <div id="rooms-status"></div>
+    <div id="rooms-list"></div>
+
+    <h2>Bookings</h2>
+    <div id="bookings-status"></div>
+    <div id="bookings-list"></div>
+</body>
+
 </html>
