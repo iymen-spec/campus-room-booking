@@ -20,6 +20,24 @@ Typical demo flow:
 8. Cancel or reschedule an existing booking.
 9. Try an overlapping booking and see the backend reject the conflict.
 
+## Demo Screenshots
+
+### Search Available Rooms
+
+![Availability search results](docs/images/availability-search.png)
+
+### Booking Created
+
+![Bookings list with a newly created booking](docs/images/booking-created.png)
+
+### Reschedule Booking
+
+![Inline reschedule form for an active booking](docs/images/reschedule-form.png)
+
+### Canceled Booking Status
+
+![Canceled booking shown with canceled status](docs/images/canceled-booking.png)
+
 ## Features
 
 ### Browser UI
