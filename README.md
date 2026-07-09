@@ -1,29 +1,52 @@
 # Campus Room Booking Platform
 
-A Spring Boot backend API for searching campus rooms, checking room availability, creating bookings, canceling bookings, and rescheduling bookings.
+Campus Room Booking Platform is a full-stack Spring Boot application for searching available campus rooms, creating bookings, and managing booking lifecycle actions with PostgreSQL persistence.
 
-## Project Goal
+The project demonstrates more than basic CRUD: it includes layered backend architecture, validation, conflict prevention, soft cancellation, rescheduling rules, database-backed persistence, service/controller tests, and a browser UI served by Spring Boot.
 
-The goal of this project is to build a realistic backend application using Java, Spring Boot, PostgreSQL, and layered backend architecture.
+## Demo Overview
 
-The core backend challenge is preventing two active bookings from reserving the same room during overlapping times, while still allowing back-to-back bookings and ignoring canceled bookings.
+A user can run the app locally, open the browser UI, search for available rooms, create a booking, view existing bookings, cancel an active booking, and reschedule a booking.
 
-## Implemented Backend Features
+Typical demo flow:
 
-* List campus rooms
-* Look up a room by id
-* Filter rooms by building and minimum capacity
+1. Start PostgreSQL with Docker Compose.
+2. Run the Spring Boot app.
+3. Open `http://localhost:8080/`.
+4. View seeded rooms and bookings.
+5. Search available rooms for a date/time range.
+6. Create a booking from an available room.
+7. Confirm the bookings list updates.
+8. Cancel or reschedule an existing booking.
+9. Try an overlapping booking and see the backend reject the conflict.
+
+## Features
+
+### Browser UI
+
+* View campus rooms
+* View existing bookings
 * Search for available rooms by date and time
-* Create room bookings
-* Prevent overlapping active bookings
-* Allow back-to-back bookings
-* Cancel bookings
+* Filter availability by building and minimum capacity
+* Create bookings from available room results
+* Cancel active bookings
 * Reschedule bookings
-* Look up and filter bookings
+* Display loading, success, empty, and error states from backend responses
+
+### Backend API
+
+* List rooms
+* Look up rooms by ID
+* Filter rooms by building and minimum capacity
+* Search room availability
+* Create bookings
+* List and filter bookings
+* Look up bookings by ID
+* Cancel bookings without deleting database records
+* Reschedule bookings
 * Validate request bodies and request parameters
 * Return consistent error responses
 * Persist rooms and bookings with PostgreSQL
-* Run PostgreSQL locally with Docker Compose
 
 ## Tech Stack
 
@@ -36,101 +59,44 @@ The core backend challenge is preventing two active bookings from reserving the 
 * Bean Validation
 * JUnit
 * MockMvc
+* HTML
+* CSS
+* JavaScript
 * Git / GitHub
 
 ## Architecture
 
-This project uses a layered backend structure:
+The application uses a layered architecture:
 
-* **Controller**: handles HTTP requests and responses
+* **Controller**: handles HTTP requests and maps service results to HTTP responses
 * **Service**: owns business rules and application workflows
 * **Repository**: owns persistence and data access
 * **Entity**: represents database tables for JPA
 * **Model**: represents internal domain concepts
-* **DTO**: represents API request and response shapes
+* **DTO**: defines API request and response shapes
 
-Controllers do not talk directly to repositories. Services own booking rules such as time validation, room existence checks, conflict prevention, cancellation rules, and rescheduling rules.
+Controllers do not talk directly to repositories. Business rules such as time validation, room existence checks, conflict prevention, cancellation behavior, and rescheduling behavior live in the service layer.
 
-JPA entities stay inside the persistence layer and do not leak into API responses. API responses use DTOs instead.
+JPA entities stay inside the persistence layer and do not leak into API responses. API responses are returned through DTOs.
 
-## Local Development Setup
+The frontend is intentionally simple and served from Spring Boot static resources. It is not a separate React application. This keeps the project focused on full booking flow, backend design, persistence, and clean frontend responsibility separation without adding frontend build tooling.
 
-This project uses PostgreSQL for local development. The database can be started with Docker Compose.
+## Business Rules and Design Decisions
 
-The local development database values are:
+* Start time must be before end time.
+* A booking can only be created for an existing room.
+* Active bookings cannot overlap for the same room on the same date.
+* Back-to-back bookings are allowed.
+* Canceled bookings do not block room availability.
+* Canceled bookings do not cause booking conflicts.
+* Canceled bookings cannot be rescheduled.
+* Rescheduling checks conflicts against other active bookings while ignoring the booking being updated.
+* Booking IDs are generated by the database.
+* Canceling a booking changes its status instead of deleting the database row.
 
-* Database: `campus_room_booking`
-* Username: `campus`
-* Password: `campus`
-* Port: `5432`
+These rules make the project more realistic than a basic CRUD app because booking behavior depends on time ranges, room state, booking status, and lifecycle transitions.
 
-These are local development credentials only. Do not treat them as production secrets.
-
-### Start PostgreSQL
-
-From the project root, run:
-
-```powershell
-docker compose up -d
-```
-
-This starts a PostgreSQL container using the settings in `compose.yaml`.
-
-### Run the Spring Boot app
-
-After PostgreSQL is running, start the app:
-
-```powershell
-./mvnw spring-boot:run
-```
-
-Spring Boot connects to PostgreSQL using `src/main/resources/application.properties`.
-
-When the app starts, `schema.sql` creates the database tables and `data.sql` seeds initial room and booking data.
-
-### Verify the API
-
-In another terminal, run:
-
-```powershell
-Invoke-RestMethod "http://localhost:8080/api/rooms"
-Invoke-RestMethod "http://localhost:8080/api/bookings"
-```
-
-You should see seeded rooms and bookings from PostgreSQL.
-
-### Run tests
-
-Make sure PostgreSQL is running, then run:
-
-```powershell
-./mvnw test
-```
-
-### Stop PostgreSQL
-
-To stop the local database container:
-
-```powershell
-docker compose down
-```
-
-This stops/removes the container but keeps the database volume.
-
-### Reset the database
-
-Docker Compose uses a persistent volume for PostgreSQL data. This means data survives container restarts.
-
-To intentionally wipe the local database and start fresh:
-
-```powershell
-docker compose down -v
-docker compose up -d
-```
-
-Only use `docker compose down -v` when you want to delete the local database data.
-
-## API Endpoints
+## API Overview
 
 ### Health
 
@@ -140,13 +106,13 @@ Only use `docker compose down -v` when you want to delete the local database dat
 
 ### Rooms
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| GET    | `/api/rooms`                                                         | List all rooms                                    |
-| GET    | `/api/rooms/{id}`                                                    | Look up a room by ID                              |
-| GET    | `/api/rooms?building=Library`                                        | Filter rooms by building                          |
-| GET    | `/api/rooms?minCapacity=20`                                          | Filter rooms by minimum capacity                  |
-| GET    | `/api/rooms/available?date=2026-06-20&startTime=10:00&endTime=11:00` | Find rooms available during a date and time range |
+| Method | Endpoint                                                             | Description                                   |
+| ------ | -------------------------------------------------------------------- | --------------------------------------------- |
+| GET    | `/api/rooms`                                                         | List all rooms                                |
+| GET    | `/api/rooms/{id}`                                                    | Look up a room by ID                          |
+| GET    | `/api/rooms?building=Library`                                        | Filter rooms by building                      |
+| GET    | `/api/rooms?minCapacity=20`                                          | Filter rooms by minimum capacity              |
+| GET    | `/api/rooms/available?date=2026-06-20&startTime=10:00&endTime=11:00` | Find rooms available during a date/time range |
 
 ### Bookings
 
@@ -192,22 +158,9 @@ Only use `docker compose down -v` when you want to delete the local database dat
 
 The reschedule request does not accept `id`, `bookedBy`, or `status`. The existing booking keeps its ID, user, and status while changing room, date, start time, and end time.
 
-## Business Rules
-
-* Start time must be before end time
-* A booking can only be created for an existing room
-* Overlapping active bookings for the same room and date are rejected
-* Back-to-back bookings are allowed
-* Canceled bookings do not block room availability
-* Canceled bookings do not cause booking conflicts
-* Canceled bookings cannot be rescheduled
-* Rescheduling checks for conflicts against other active bookings, but ignores the booking being updated
-* Booking IDs are generated by the database
-* Canceling a booking changes its status instead of deleting the database row
-
 ## Error Responses
 
-Error responses use this shape:
+Error responses use a consistent shape:
 
 ```json
 {
@@ -223,13 +176,78 @@ Common examples:
 | Missing room or booking                   | `404 Not Found`   |
 | Booking conflict                          | `409 Conflict`    |
 
+## Local Setup
+
+This project uses PostgreSQL for local development. The database runs through Docker Compose.
+
+Local development database values:
+
+* Database: `campus_room_booking`
+* Username: `campus`
+* Password: `campus`
+* Port: `5432`
+
+These are local development credentials only.
+
+### 1. Start PostgreSQL
+
+From the project root:
+
+```powershell
+docker compose up -d
+```
+
+This starts a PostgreSQL container using the settings in `compose.yaml`.
+
+### 2. Run the Spring Boot app
+
+```powershell
+./mvnw spring-boot:run
+```
+
+Spring Boot connects to PostgreSQL using `src/main/resources/application.properties`.
+
+When the app starts, `schema.sql` creates the database tables and `data.sql` seeds initial room and booking data.
+
+### 3. Open the browser UI
+
+Go to:
+
+```text
+http://localhost:8080/
+```
+
+### 4. Verify the API directly
+
+In another terminal:
+
+```powershell
+Invoke-RestMethod "http://localhost:8080/api/rooms"
+Invoke-RestMethod "http://localhost:8080/api/bookings"
+```
+
+You should see seeded rooms and bookings from PostgreSQL.
+
 ## Testing
 
-This project includes service tests and API/controller tests.
+This project includes service tests and controller/API tests.
 
-Service tests protect business rules such as conflict detection, cancellation behavior, rescheduling behavior, invalid time handling, and missing room/booking cases.
+Service tests protect business rules such as:
 
-MockMvc tests protect HTTP behavior such as status codes, request validation, endpoint routing, and response bodies.
+* conflict detection
+* invalid time handling
+* missing room handling
+* cancellation behavior
+* rescheduling behavior
+* canceled booking behavior
+
+MockMvc tests protect HTTP behavior such as:
+
+* endpoint routing
+* request validation
+* response status codes
+* response bodies
+* error handling
 
 Run all tests with:
 
@@ -237,11 +255,47 @@ Run all tests with:
 ./mvnw test
 ```
 
-## Current Limitations / Future Work
+## Database Management
 
-* Frontend UI
-* User authentication and booking ownership
-* Admin room management
-* Database integration testing
-* Concurrency protection for simultaneous booking attempts
-* Deployment
+### Stop PostgreSQL
+
+```powershell
+docker compose down
+```
+
+This stops and removes the container but keeps the database volume.
+
+### Reset the database
+
+Docker Compose uses a persistent volume for PostgreSQL data. This means data survives container restarts.
+
+To intentionally wipe the local database and start fresh:
+
+```powershell
+docker compose down -v
+docker compose up -d
+```
+
+Only use `docker compose down -v` when you want to delete local database data.
+
+
+## Scope
+
+This project is a completed portfolio MVP focused on backend architecture, booking rules, persistence, validation, testing, and an end-to-end browser demo.
+
+It intentionally does not include:
+
+* user authentication
+* user roles or admin permissions
+* booking ownership enforcement
+* production deployment
+* calendar-style scheduling UI
+* email notifications
+* recurring bookings
+* advanced protection for simultaneous booking attempts
+
+Those features would matter in a production scheduling system, but they are outside the scope of this version. The goal of this project is to demonstrate a clean full-stack booking workflow with realistic backend rules and PostgreSQL persistence.
+
+## Portfolio Summary
+
+Campus Room Booking Platform is a full-stack Java/Spring Boot project that demonstrates practical backend engineering through a realistic room-booking domain. It includes PostgreSQL persistence, layered architecture, validation, conflict prevention, booking lifecycle management, a browser-based UI, Docker Compose local setup, and automated service/controller tests.
